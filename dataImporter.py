@@ -20,7 +20,7 @@ class DataImporter:
         if "AiM CSV File" in line:
             self.dataFile = filename
             return AiMImporter(self)
-        else if "RaceRender Data: TrackAddict" in line: 
+        elif "RaceRender Data: TrackAddict" in line: 
             self.dataFile = filename
             return TrackAddictImporter(self)
         else:
