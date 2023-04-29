@@ -18,11 +18,11 @@ class AiMImporter(DataImporter):
             for row in reader:
                 unparsedData.append(row)
 
-        // Parse through the in-memory array for metadata
+        # Parse through the in-memory array for metadata
         session.addSessionInfo(unparsedData[1])
         session.addSessionInfo(unparsedData[6])
 
-        // remove the metadata from the in-memory array
+        # remove the metadata from the in-memory array
         for i in range(13):
             del unparsedData[0]
 
