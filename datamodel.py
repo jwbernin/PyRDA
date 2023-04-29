@@ -25,7 +25,7 @@ class TrackSession:
         newLap = []
         self.laps.append(newLap)
         self.numLaps += 1
-        assert self.numLaps = len(self.laps)
+        assert self.numLaps == len(self.laps)
 
     def addMeasurement(self, timeChop, **kwargs):
         measurement = {"time":timechop}
