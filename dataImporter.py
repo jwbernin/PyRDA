@@ -3,6 +3,7 @@
 # Class for data importation
 
 from importers import *
+import os.path
 
 class DataImporter:
     def __init__(self):
@@ -12,7 +13,7 @@ class DataImporter:
         pass
 
     def getFileImporter(self, filename):
-        if not is_file(filename):
+        if not os.path.isfile(filename):
             return False
         with open(filename, "r") as sourceFile:
             line = sourceFile.readline()
