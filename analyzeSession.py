@@ -5,6 +5,7 @@
 from dataImporter import *
 from datamodel import TrackSession
 import sys
+import math
 import pprint
 
 
@@ -17,6 +18,9 @@ def main():
     session = inputObject.readSessionData()
 
     session.dumpMetadata()
+
+    for lap in session.getLapTimes():
+        print(f"{math.trunc(lap/60):02}:{lap%60:0>6.3f}")
 
 if __name__ == '__main__':
     main()

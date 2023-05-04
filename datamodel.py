@@ -12,6 +12,7 @@
 
 import pprint
 import utils
+import math
 class TrackSession:
     def __init__(self):
         self.laps = []
@@ -30,12 +31,15 @@ class TrackSession:
     def loadTrack(self):
         trackName = self.sessioninfo["trackName"]
         if "VIR" in trackName.upper():
-            from tracks import VIRfull
-            self.sessioninfo["trackDescription"] = VIRfull.description
-            self.trackStartFinish = VIRfull.startpoint
-            self.waypoints = VIRfull.sectorEnds
-            print ("Waypoints:")
-            pprint.pprint(self.waypoints)
+            if "full" in trackName.lower():
+                from tracks import VIRfull as track
+        elif "SEBRING" in trackName.upper():
+            from tracks import Sebring as track
+        if "track" not in dir():
+            return
+        self.sessioninfo["trackDescription"] = track.description
+        self.trackStartFinish = track.startpoint
+        self.waypoints = track.sectorEnds
 
     def addLap(self):
         newLap = []
@@ -60,9 +64,9 @@ class TrackSession:
         if None != prevPoint:
             curPoint = (measurement["GPSlat"], measurement["GPSlng"])
             # Are we within 30 feet of the start/finish point?
-            if utils.calculateGPSdistace(curPoint, self.trackStartFinish) < 30:
+            if utils.calculateGPSdistance(curPoint, self.trackStartFinish) < 30:
                 # We are decreasing coming in. When we cross, we will start increasing.
-                if utils.calculateGPSdistace(curPoint, self.trackStartFinish) > utils.calculateGPSdistace(prevPoint, self.trackStartFinish):
+                if utils.calculateGPSdistance(curPoint, self.trackStartFinish) > utils.calculateGPSdistance(prevPoint, self.trackStartFinish):
                     # We have crossed the boundary, but only add a new lap if the current lap has
                     # over 100 datapoints.
                     if len(self.laps[-1]) > 100:
@@ -70,17 +74,17 @@ class TrackSession:
                         self.curLap += 1
                         self.curSegment = 1
 
-            # TODO: Have we crossed a segment boundary?
+            # Have we crossed a segment boundary?
             if 0 != self.curSegment:
                 # Figure out if we need to increment the segment number
                 if self.curSegment == len(self.waypoints):
                     nextWaypoint = self.trackStartFinish
                 else:
                     nextWaypoint = self.waypoints[self.curSegment-1]
-                # Are we within 30 feet of the next waypoint?
-                if utils.calculateGPSdistace(curPoint, nextWaypoint) < 25:
+                # Are we within 25 feet of the next waypoint?
+                if utils.calculateGPSdistance(curPoint, nextWaypoint) < 25:
                     # Distance is decreasing until we cross. When distance increases, we have crossed
-                    if utils.calculateGPSdistace(curPoint, nextWaypoint) > utils.calculateGPSdistace(prevPoint, nextWaypoint):
+                    if utils.calculateGPSdistance(curPoint, nextWaypoint) > utils.calculateGPSdistance(prevPoint, nextWaypoint):
                         self.curSegment += 1
 
         measurement["segment"] = self.curSegment
@@ -97,7 +101,7 @@ class TrackSession:
     def getLastDistanceTraversed(self):
         point1 = measurement(self.laps[-1][-2])
         point2 = self.getLastLocation()
-        return utils.calculateGPSdistace( (point1["GPSlat"], point1["GPSlng"]), (point2["GPSlat"], point2["GPSlng"]) )
+        return utils.calculateGPSdistance( (point1["GPSlat"], point1["GPSlng"]), (point2["GPSlat"], point2["GPSlng"]) )
 
     def dumpMetadata(self):
         pprint.pprint(self.sessioninfo)
@@ -105,3 +109,15 @@ class TrackSession:
 
     def dumpLap(self, lapNumber):
         pprint.pprint(self.laps[lapNumber])
+
+    def getLapTime(self, lapNumber):
+        start = float(self.laps[lapNumber][0]["time"])
+        end = float(self.laps[lapNumber][-1]["time"])
+        elapsed = end - start
+        return elapsed
+
+    def getLapTimes(self):
+        times = []
+        for f in range(len(self.laps)):
+            times.append(self.getLapTime(f))
+        return times
