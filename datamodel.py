@@ -28,6 +28,13 @@ class TrackSession:
         for k,v in kwargs.items():
             self.sessioninfo[k] = v
 
+    def getSessionInfo(self, item):
+        if '' == item:
+            return self.sessioninfo
+        if item not in self.sessioninfo.keys():
+            return None
+        return self.sessioninfo[item]
+
     def loadTrack(self):
         trackName = self.sessioninfo["trackName"]
         if "VIR" in trackName.upper():
@@ -56,7 +63,6 @@ class TrackSession:
         measurement["segment"] = self.curSegment
         for k,v in kwargs.items():
             measurement[k]=v
-
 
         # Have we crossed the start/finish boundary?
         prevPoint = self.getLastLocation()
@@ -99,7 +105,8 @@ class TrackSession:
         return (measurement["GPSlat"], measurement["GPSlng"])
 
     def getLastDistanceTraversed(self):
-        point1 = measurement(self.laps[-1][-2])
+        measurement = self.laps[-1][-2]
+        point1 = (measurement["GPSlat"], measurement["GPSlng"])
         point2 = self.getLastLocation()
         return utils.calculateGPSdistance( (point1["GPSlat"], point1["GPSlng"]), (point2["GPSlat"], point2["GPSlng"]) )
 
@@ -121,3 +128,13 @@ class TrackSession:
         for f in range(len(self.laps)):
             times.append(self.getLapTime(f))
         return times
+    
+    def getDataPoints(self):
+        # TODO: Turn this into a comprehension. It feels like doing so would save some processing time.
+        dataPoints = []
+        for lap in self.laps:
+            for measurement in lap:
+                for point in measurement.keys():
+                    if point not in dataPoints:
+                        dataPoints.append(point)
+        return dataPoints
