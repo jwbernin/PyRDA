@@ -54,6 +54,7 @@ class TrackSession:
         self.numLaps += 1
         assert self.numLaps == len(self.laps)
 
+    # TODO: This is buggy. Refactor.
     def addMeasurement(self, timeChop, **kwargs):
         if 0 == len(self.laps):
             self.addLap()
@@ -129,7 +130,7 @@ class TrackSession:
             times.append(self.getLapTime(f))
         return times
     
-    def getDataPoints(self):
+    def getDataPointsAvail(self):
         # TODO: Turn this into a comprehension. It feels like doing so would save some processing time.
         dataPoints = []
         for lap in self.laps:
@@ -138,3 +139,37 @@ class TrackSession:
                     if point not in dataPoints:
                         dataPoints.append(point)
         return dataPoints
+    
+    def getSegments(self):
+        sessRet = []
+        for lap in self.laps:
+            thisLap = []
+            for segment in range(len(self.waypoints)):
+                thisLap.append([])              
+            for measurement in lap:
+                thisLap[measurement["segment"]-1].append(measurement)
+            sessRet.append(thisLap)
+        return sessRet
+    
+    def getImageBoundaries(self):
+        southWest = []
+        northEast = []
+        southWest = [self.trackStartFinish[0], self.trackStartFinish[1]]
+        northEast = [self.trackStartFinish[0], self.trackStartFinish[1]]
+        for lap in self.laps:
+            for measurement in lap:
+                if abs(measurement["GPSlat"]) < abs(southWest[0]):
+                    southWest[0] = measurement["GPSlat"]
+                if abs(measurement["GPSlat"]) > abs(northEast[0]):
+                    northEast[0] = measurement["GPSlat"]
+                if abs(measurement["GPSlng"]) > abs(southWest[1]):
+                    southWest[1] = measurement["GPSlng"]
+                if abs(measurement["GPSlng"]) < abs(northEast[1]):
+                    northEast[1] = measurement["GPSlng"]
+        return [southWest, northEast]
+
+    def getMapLocation(self):
+        return [self.trackStartFinish[0], self.trackStartFinish[1]]
+    
+    def getLaps(self):
+        return self.laps

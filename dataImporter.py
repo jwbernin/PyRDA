@@ -41,6 +41,7 @@ class AiMImporter():
         # Parse through the in-memory array for metadata
         self.session.addSessionInfo(trackName = unparsedData[1][1])
         self.session.addSessionInfo(sessionDate = unparsedData[6][1])
+        self.session.addSessionInfo(sessionTime = unparsedData[7][1])
 
         self.session.loadTrack()
 
@@ -61,9 +62,9 @@ class AiMImporter():
         # Process all datapoints
         for row in unparsedData:
             self.session.addMeasurement(row[columnHeaders.index(self.dataLogPoints["time"])],
-                GPSlat = row[columnHeaders.index(self.dataLogPoints["GPSlat"])],
-                GPSlng = row[columnHeaders.index(self.dataLogPoints["GPSlng"])],
-                throttle = row[columnHeaders.index(self.dataLogPoints["throttle"])]
+                GPSlat = float(row[columnHeaders.index(self.dataLogPoints["GPSlat"])]),
+                GPSlng = float(row[columnHeaders.index(self.dataLogPoints["GPSlng"])]),
+                throttle = float(row[columnHeaders.index(self.dataLogPoints["throttle"])])
             )
                 
         return self.session
