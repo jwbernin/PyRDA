@@ -4,7 +4,6 @@
 
 from dataImporter import *
 from datamodel import TrackSession
-from mapPlotter import MapPlotter
 import folium
 import math
 import argparse
