@@ -20,8 +20,8 @@ class TrackSession:
         self.numLaps = 0
         self.trackStartFinish = ()
         self.waypoints = []
-        self.curLap = 0
-        self.curSegment = 0
+        self.curLap = 1
+        self.curSegment = 1
 
     # Add session metadata
     def addSessionInfo(self, **kwargs):
@@ -47,6 +47,8 @@ class TrackSession:
         self.sessioninfo["trackDescription"] = track.description
         self.trackStartFinish = track.startpoint
         self.waypoints = track.sectorEnds
+        self.enterTrackPoint = track.enterTrackPoint
+        self.exitTrackPoint = track.exitTrackPoint
 
     def addLap(self):
         newLap = []
@@ -60,8 +62,6 @@ class TrackSession:
             self.addLap()
             
         measurement = {"time":timeChop}
-        measurement["lap"] = self.curLap
-        measurement["segment"] = self.curSegment
         for k,v in kwargs.items():
             measurement[k]=v
 
@@ -94,8 +94,26 @@ class TrackSession:
                     if utils.calculateGPSdistance(curPoint, nextWaypoint) > utils.calculateGPSdistance(prevPoint, nextWaypoint):
                         self.curSegment += 1
 
+        measurement["lap"] = self.curLap
         measurement["segment"] = self.curSegment
         self.laps[-1].append(measurement)
+
+    def trimEnds(self):
+        # Trims the start of the out lap and the end of the last lap so that we don't have GPS tracks 
+        # following us into and through the paddock.
+        inLapPoints = len(self.laps[0])
+        outLapPoints = len(self.laps[-1])
+        # Starting at datapoint 0, if we are not within 10 feet of enterTrackPoint, we don't care about this datapoint
+        while (15 < utils.calculateGPSdistance(self.enterTrackPoint, (self.laps[0][0]["GPSlat"], self.laps[0][0]["GPSlng"]))):
+            del self.laps[0][0]
+
+        # starting with the last datapoint and working backwards, if we're not within 10 feet of exitTrackPoint, we
+        # get rid of the point
+        while (15 < utils.calculateGPSdistance(self.exitTrackPoint, (self.laps[-1][-1]["GPSlat"], self.laps[-1][-1]["GPSlng"]))):
+            del self.laps[-1][-1]
+
+        assert len(self.laps[0]) < inLapPoints
+        assert len(self.laps[-1]) < outLapPoints
 
     def getLastLocation(self):
         if 0 == len(self.laps):
