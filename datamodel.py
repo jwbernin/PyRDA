@@ -61,7 +61,7 @@ class TrackSession:
         if 0 == len(self.laps):
             self.addLap()
             
-        measurement = {"time":timeChop}
+        measurement = {"time":float(timeChop)}
         for k,v in kwargs.items():
             measurement[k]=v
 
@@ -191,3 +191,15 @@ class TrackSession:
     
     def getLaps(self):
         return self.laps
+    
+    def getSegmentsByTime(self, segNum):
+        segments = []
+        shortSegment = []
+        for lap in self.laps:
+            for measurement in lap:
+                if measurement["segment"] == segNum:
+                    shortSegment.append(measurement)
+            segTime = shortSegment[-1]["time"] - shortSegment[0]["time"]
+            segments.append({"time": segTime, "path": shortSegment})
+            shortSegment=[]
+        return segments
