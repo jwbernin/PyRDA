@@ -149,7 +149,6 @@ class TrackSession:
         return times
     
     def getDataPointsAvail(self):
-        # TODO: Turn this into a comprehension. It feels like doing so would save some processing time.
         dataPoints = []
         for lap in self.laps:
             for measurement in lap:
@@ -195,11 +194,13 @@ class TrackSession:
     def getSegmentsByTime(self, segNum):
         segments = []
         shortSegment = []
+        lapNum = 0 
         for lap in self.laps:
+            lapNum += 1
             for measurement in lap:
                 if measurement["segment"] == segNum:
                     shortSegment.append(measurement)
             segTime = shortSegment[-1]["time"] - shortSegment[0]["time"]
-            segments.append({"time": segTime, "path": shortSegment})
+            segments.append({"time": segTime, "path": shortSegment, "lap": lapNum})
             shortSegment=[]
         return segments
