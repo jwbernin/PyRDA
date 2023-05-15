@@ -42,7 +42,9 @@ class AiMImporter():
         self.session.addSessionInfo(trackName = unparsedData[1][1])
         self.session.addSessionInfo(sessionDate = unparsedData[6][1])
         self.session.addSessionInfo(sessionTime = unparsedData[7][1])
-
+        self.session.addSessionInfo(vehicle = unparsedData[2][1])
+        self.session.addSessionInfo(driverName = unparsedData[3][1])
+        
         self.session.loadTrack()
 
         # remove the metadata from the in-memory array

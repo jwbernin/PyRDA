@@ -185,6 +185,26 @@ class TrackSession:
                     northEast[1] = measurement["GPSlng"]
         return [southWest, northEast]
 
+    def getSeriesBoundaries(self, measurements):
+        southWest = []
+        northEast = []
+        southWest = [measurements[0]["GPSlat"], measurements[0]["GPSlng"]]
+        northEast = [measurements[0]["GPSlat"], measurements[0]["GPSlng"]]
+        for measurement in measurements:
+            if abs(measurement["GPSlat"]) < abs(southWest[0]):
+                southWest[0] = measurement["GPSlat"]
+            if abs(measurement["GPSlat"]) > abs(northEast[0]):
+                northEast[0] = measurement["GPSlat"]
+            if abs(measurement["GPSlng"]) > abs(southWest[1]):
+                southWest[1] = measurement["GPSlng"]
+            if abs(measurement["GPSlng"]) < abs(northEast[1]):
+                northEast[1] = measurement["GPSlng"]
+        return [southWest, northEast]
+
+    def getSeriesCenterpoint(self, measurements):
+        [sw, ne] = self.getSeriesBoundaries(measurements)
+        return [ (sw[0]+ne[0])/2, (sw[1]+ne[1])/2 ]
+
     def getMapLocation(self):
         return [self.trackStartFinish[0], self.trackStartFinish[1]]
     
