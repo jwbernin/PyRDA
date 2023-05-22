@@ -84,7 +84,7 @@ class TrackSession:
             # Have we crossed a segment boundary?
             if 0 != self.curSegment:
                 # Figure out if we need to increment the segment number
-                if self.curSegment == len(self.waypoints):
+                if self.curSegment == len(self.waypoints)+1:
                     nextWaypoint = self.trackStartFinish
                 else:
                     nextWaypoint = self.waypoints[self.curSegment-1]
@@ -147,7 +147,13 @@ class TrackSession:
         for f in range(len(self.laps)):
             times.append(self.getLapTime(f))
         return times
-    
+
+    def getHotLapTimes(self):
+        times = []
+        for f in range(1, len(self.laps)-1):
+            times.append(self.getLapTime(f))
+        return times
+
     def getDataPointsAvail(self):
         dataPoints = []
         for lap in self.laps:
@@ -224,3 +230,33 @@ class TrackSession:
             segments.append({"time": segTime, "path": shortSegment, "lap": lapNum})
             shortSegment=[]
         return segments
+    
+    def getSegmentTimes(self, segmentNum):
+        segments = self.getSegmentsByTime(segmentNum)
+        times = [float(item["time"]) for item in segments]
+        return times
+    
+    def getSegmentHotTimes(self, segmentNum):
+        segments = self.getSegmentsByTime(segmentNum)
+        times = [float(item["time"]) for item in segments[1:-2]]
+        return times
+    
+    def getSegmentMinimum(self, segmentNum):
+        segments = self.getSegmentsByTime(segmentNum)
+        times = [float(item["time"]) for item in segments]
+        return min(times)
+    
+    def getSegmentHotMinimum(self, segmentNum):
+        segments = self.getSegmentsByTime(segmentNum)
+        times = [float(item["time"]) for item in segments[1:-2]]
+        return min(times)
+    
+    def getSegmentMinDelta(self, segmentNum):
+        segments = self.getSegmentsByTime(segmentNum)
+        times = sorted([float(item["time"]) for item in segments])
+        return times[1]-times[0]
+    
+    def getSegmentHotMinDelta(self, segmentNum):
+        segments = self.getSegmentsByTime(segmentNum)
+        times = sorted([float(item["time"]) for item in segments[1:-2]])
+        return times[1]-times[0]

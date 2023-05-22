@@ -2,6 +2,7 @@
 
 # Utility functions
 import geopy.distance
+import statistics
 import pprint
 
 def calculateGPSdistance(location1, location2):
@@ -30,7 +31,16 @@ def sortSegments(listToSort):
 
   return [saveItem].append(sortSegments(listToSort))
 
+def averageFilter(times):
+  floatList = [float(x) for x in times]
+  return sum(floatList)/len(floatList)
 
+# We use statistics.pstdev() here because we're calculating the stdev 
+# of the entire series, we're not working ith just a sample of lap times, 
+# we're working with all the lap times.
+def stdDevFilter(times):
+  floatList = [float(x) for x in times]
+  return statistics.pstdev(floatList)
     
 
 

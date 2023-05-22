@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Race session data analysis results</title>
+</head>
+<body>
+<div style="vertical-align: center; align-items: center; display: flex">
+<h1><center>Race session data analysis</center></h1>
+<center>Prepared for:<br/> 
+<b>{{ session.sessioninfo["driverName"] }}</b><br/>
+driving <br/>
+<b>{{ session.sessioninfo["vehicle"] }}</b><br/> 
+on track<br/>
+<b>{{ session.sessioninfo["trackDescription"] }}</b><br/>
+Session date: {{ session.sessioninfo["sessionDate"] }}<br/>
+Session time: {{ session.sessioninfo["sessionTime"] }}<br/>
+</center>
+</div>
+{% if args.laps %}
+<div style="page-break-before: always">
+<h1>Lap data</h1>
+<h2>Individual lap times</h2>
+During this session, you drove {{ session.getLapTimes()|length }} laps. The lap times you had are as follows:<br/><br/>
+{% for lap in session.getLapTimes() %}
+Lap {{ loop.index }}: {{ '%02d' % (lap|float // 60) }}:{{ '%06.3f' % (lap|float % 60) }}<br/>
+{% endfor %}
+<h2>Average Lap Time</h2>
+The average lap time is simply the average time per lap dring the session. It is a very rough estimate of your lap 
+speed, but is best understood in context with other calculated measures.<br/><br/>
+Your average lap time for this session was: {{ '%02d' % (session.getLapTimes()|floataverage // 60) }}:{{ '%06.3f' % (session.getLapTimes()|floataverage % 60) }}
+<h2>Standard Deviation of lap times</h2>
+The standard deviation of lap times is a mesure of how consistent your laps are. The closer your lap times are to
+each other, the smaller the standard deviation. As you become more consistent in your laps, even if the average lap
+time goes up, the standard deviation will go down. An average lap time of 2:45 with a 0:03 standard deviation is far
+better than an average lap time of 2:38 with a 0:15 standard deviation.<br/><br/>
+The standard deviation of your lap times for this session was {{ '%02d' % (session.getLapTimes()|stddev // 60) }}:{{ '%06.3f' % (session.getLapTimes()|stddev % 60) }}
+<h2>Modified average lap time</h2>
+The first and final laps of a session are likely to be outliers for lap times. Why? The first lap is the "out lap", 
+and the first part of this lap is at a slower speed because you're literally just starting the session. In a normal
+lap, you would cross the start/finish marker at a high rate of speed, carrying that speed into the first segment. On
+the out lap, however, you cross the start/finish marker at slow speed, carrying as little as 10% of your normal speed
+into the first segment. Likewise on the last lap, the "in lap", you will be moving slower across the later track
+segments, cooling your brakes and settling the car, after the checkered flag is thrown. The modified average and 
+standard deviation times remove these two laps from consideration, giving you a look at your hot laps only.<br/><br/>
+Your average hot lap time for this session was: {{ '%02d' % (session.getHotLapTimes()|floataverage // 60) }}:{{ '%06.3f' % (session.getHotLapTimes()|floataverage % 60) }}
+<h2>Modified stadnard deviation time</h2>
+As explained above, the modification here removes the out lap and in lap, giving a view of just the hot laps
+for this session.<br/><br/>
+The standard deviation of your hot lap times for this session was: {{ '%02d' % (session.getHotLapTimes()|stddev // 60) }}:{{ '%06.3f' % (session.getHotLapTimes()|stddev % 60) }}
+{% if args.combined_lap_map %}
+This is a map of all laps combined into a single path trace:<br/><br/>
+<img src="data:image/png;base64,{{ maps['combinedLapMap'] |safe }}">
+{% endif %}
+{% if args.individual_lap_maps %}
+{% for map in maps['individualLapMaps'] %}
+<div style="page-break-before: always">
+Location trace map of lap # {{ loop.index }}:
+<img src="data:image/png;base64,{{ map | safe }}">
+{% endfor %}
+{% endif %}
+{% endif %}
+
+{% if args.segments %}
+<div style="page-break-before: always">
+<h1>Segment data analysis</h1>
+Within each individual segment, the average time becomes slightly more relevant, the standard deviation slightly 
+less relevant. Why? Simple - the effect of traffic, whether you're passing a slower driver or allowing a faster
+driver to pass you, becomes more pronounced. The incidents of passing, however, become smaller, since we're only
+dealing with a small segment of the track as opposed to an entire full lap. This seems counter-intuitive at first,
+but keep it in mind as you look through this data; also keep in mind that these differences are relative to the full
+lap times. The standard deviation, which starts to show the consistency of a given segment lap-to-lap, is still more
+important than the average segment time.<br/>
+Each segment can be optimized by itself, but you should always realize that your performance in any given segment is
+at least partially determined by your performance in - and more importantly, towards the end of - the previous segment.
+If you come out of segment 4 with the car upset, off the race line, and in the wrong gear because you tried something
+new, segment 5's performance on that lap will suffer. As you gain experience, this will become second nature; if you are
+already experienced and are using this data to shave off the last hundreths of a second from your lap times, you already 
+know this.<br/><br/>
+Individual segment data is presented first across all laps, then across "hot" laps (removing the out lap and in lap).
+Note that the data for the final segment in particular will be skewed by the in lap, since the segment time for this
+lap will be far shorter than for any other lap.
+{% for segment in range((session.waypoints|length)+1) %}
+<h1>Segment # {{ loop.index }} data</h1>
+<h2>Segment Average Time</h2>
+This is a simple average of the times through this segment of the track across all laps.<br/><br/>
+Your average time for this segment was: {{ '%02d' % (session.getSegmentTimes( loop.index )|floataverage // 60) }}:{{ '%06.3f' % (session.getSegmentTimes( loop.index )|floataverage % 60) }}
+<h2>Segment Standard Deviation</h2>
+This is a mesure of your consistency through this segment across all laps.<br/><br/>
+The standard deviation of your times for this segment was: {{ '%02d' % (session.getSegmentTimes( loop.index )|stddev // 60) }}:{{ '%06.3f' % (session.getSegmentTimes( loop.index )|stddev % 60) }}
+<h2>Segment Minimum</h2>
+This is your best time through this segment.<br/><br/>
+Your minimum time for this segment was: {{ '%02d' % (session.getSegmentMinimum( loop.index ) // 60) }}:{{ '%06.3f' % (session.getSegmentMinimum( loop.index ) % 60) }}.
+This is {{ '%02d' % (session.getSegmentMinDelta( loop.index ) // 60) }}:{{ '%06.3f' % (session.getSegmentMinDelta( loop.index ) % 60) }}
+better than the second-fastest time.
+
+<h2>Segment Hot Lap Average Time</h2>
+This is a simple average of the times through this segment of the track across all laps.<br/><br/>
+Your average time for this segment was: {{ '%02d' % (session.getSegmentHotTimes( loop.index )|floataverage // 60) }}:{{ '%06.3f' % (session.getSegmentHotTimes( loop.index )|floataverage % 60) }}
+<h2>Segment Hot Lap Standard Deviation</h2>
+This is a mesure of your consistency through this segment across all laps.<br/><br/>
+The standard deviation of your times for this segment was: {{ '%02d' % (session.getSegmentHotTimes( loop.index )|stddev // 60) }}:{{ '%06.3f' % (session.getSegmentHotTimes( loop.index )|stddev % 60) }}
+<h2>Segment Hot Lap Minimum</h2>
+This is your best time through this segment.<br/><br/>
+Your minimum time for this segment was: {{ '%02d' % (session.getSegmentHotMinimum( loop.index ) // 60) }}:{{ '%06.3f' % (session.getSegmentHotMinimum( loop.index ) % 60) }}.
+This is {{ '%02d' % (session.getSegmentHotMinDelta( loop.index ) // 60) }}:{{ '%06.3f' % (session.getSegmentHotMinDelta( loop.index ) % 60) }}
+better than the second-fastest time.
+
+<h2>Segment Time Lap Breakdown</h2>
+Here are the times for each lap through this segment:<br/>
+{% set outer_loop = loop %}
+{% for time in session.getSegmentTimes( outer_loop.index ) %}
+Lap {{ loop.index }}: {{ '%02d' % (time|float // 60) }}:{{ '%06.3f' % (time|float % 60) }}<br/>
+{% endfor %}
+<h2>Segment Map</h2>
+This map shows all paths taken through this segment in blue, including the out lap and in lap. The fastest path
+is highlighted as a red trace.<br/>
+<img src="data:image/png;base64,{{ maps['segmentMaps'][ loop.index0 ] | safe }}">
+{% endfor %}
+{% endif %}
+</div>
+</body>
+</html>
