@@ -27,7 +27,12 @@ class AiMImporter():
             "time":"Time",
             "GPSlat":"GPS Latitude",
             "GPSlng":"GPS Longitude",
-            "throttle":"TPS"
+            "throttle":"PPS",
+            "brake":"BrakePress", 
+            "heading":"GPS Heading",
+            "steer":"SteerAngle",
+            "lateralAccel":"LateralAcc",
+            "inlineAccel":"InlineAcc"
         }
 
     def readSessionData(self):
@@ -66,7 +71,12 @@ class AiMImporter():
             self.session.addMeasurement(row[columnHeaders.index(self.dataLogPoints["time"])],
                 GPSlat = float(row[columnHeaders.index(self.dataLogPoints["GPSlat"])]),
                 GPSlng = float(row[columnHeaders.index(self.dataLogPoints["GPSlng"])]),
-                throttle = float(row[columnHeaders.index(self.dataLogPoints["throttle"])])
+                throttle = float(row[columnHeaders.index(self.dataLogPoints["throttle"])]),
+                brake = float(row[columnHeaders.index(self.dataLogPoints["brake"])]),
+                heading = float(row[columnHeaders.index(self.dataLogPoints["heading"])]),
+                steer = float(row[columnHeaders.index(self.dataLogPoints["steer"])]),
+                lateralAccel = float(row[columnHeaders.index(self.dataLogPoints["lateralAccel"])]),
+                inlineAccel = float(row[columnHeaders.index(self.dataLogPoints["inlineAccel"])])
             )
                 
         return self.session
@@ -79,7 +89,11 @@ class TrackAddictImporter():
             "time":"Time",
             "GPSlat":"Latitude",
             "GPSlng":"Longitude",
-            "throttle":"Accelerator Pedal (%) *OBD"
+            "throttle":"Accelerator Pedal (%) *OBD",
+            "brake":"Brake (calculated)",
+            "heading":"Heading",
+            "lateralAccel":"Accel X",
+            "inlineAccel":"Accel Y"
         }
 
     def readSessionData(self):
@@ -108,9 +122,13 @@ class TrackAddictImporter():
             if row[0].startswith('#'):
                 continue
             self.session.addMeasurement(row[columnHeaders.index(self.dataLogPoints["time"])],
-                GPSlat = row[columnHeaders.index(self.dataLogPoints["GPSlat"])],
-                GPSlng = row[columnHeaders.index(self.dataLogPoints["GPSlng"])],
-                throttle = row[columnHeaders.index(self.dataLogPoints["throttle"])]
+                GPSlat = float(row[columnHeaders.index(self.dataLogPoints["GPSlat"])]),
+                GPSlng = float(row[columnHeaders.index(self.dataLogPoints["GPSlng"])]),
+                throttle = float(row[columnHeaders.index(self.dataLogPoints["throttle"])]),
+                brake = float(row[columnHeaders.index(self.dataLogPoints["brake"])]),
+                heading = float(row[columnHeaders.index(self.dataLogPoints["heading"])]),
+                lateralAccel = float(row[columnHeaders.index(self.dataLogPoints["lateralAccel"])]),
+                inlineAccel = float(row[columnHeaders.index(self.dataLogPoints["inlineAccel"])])
             )
-                
+
         return self.session

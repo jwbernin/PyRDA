@@ -51,18 +51,27 @@ The standard deviation of your hot lap times for this session was: {{ '%02d' % (
 This is a map of all laps combined into a single path trace:<br/><br/>
 <img src="data:image/png;base64,{{ maps['combinedLapMap'] |safe }}">
 {% endif %}
+{% if args.gg_maps %}
+<h2>Session G-G plot</h2>
+Your G-G plot shows the inline and lateral acceleration values measured during this session. More commonly known as G's,
+this is a representation of host fast you are accelerating, braking, or turning, and can help you understand if you 
+are maximizing your car's full traction potential. <br/><br/>
+<img src="data:image/png;base64,{{ maps['sessionGGMap'] | safe }}">
+{% endif %}
 {% if args.individual_lap_maps %}
 {% for map in maps['individualLapMaps'] %}
 <div style="page-break-before: always">
 Location trace map of lap # {{ loop.index }}:
 <img src="data:image/png;base64,{{ map | safe }}">
+G-G plot for lap # {{ loop.index }}:<br/>
+<img src="data:image/png;base64,{{ maps['individualGGmaps'][ loop.index0 ] | safe }}">
 {% endfor %}
 {% endif %}
 {% endif %}
 
 {% if args.segments %}
 <div style="page-break-before: always">
-<h1>Segment data analysis</h1>
+<h1>Segment data analysis - basic information</h1>
 Within each individual segment, the average time becomes slightly more relevant, the standard deviation slightly 
 less relevant. Why? Simple - the effect of traffic, whether you're passing a slower driver or allowing a faster
 driver to pass you, becomes more pronounced. The incidents of passing, however, become smaller, since we're only
@@ -80,6 +89,7 @@ Individual segment data is presented first across all laps, then across "hot" la
 Note that the data for the final segment in particular will be skewed by the in lap, since the segment time for this
 lap will be far shorter than for any other lap.
 {% for segment in range((session.waypoints|length)+1) %}
+<div style="page-break-before: always">
 <h1>Segment # {{ loop.index }} data</h1>
 <h2>Segment Average Time</h2>
 This is a simple average of the times through this segment of the track across all laps.<br/><br/>
@@ -90,9 +100,10 @@ The standard deviation of your times for this segment was: {{ '%02d' % (session.
 <h2>Segment Minimum</h2>
 This is your best time through this segment.<br/><br/>
 Your minimum time for this segment was: {{ '%02d' % (session.getSegmentMinimum( loop.index ) // 60) }}:{{ '%06.3f' % (session.getSegmentMinimum( loop.index ) % 60) }}.
+{% if args.delta %}
 This is {{ '%02d' % (session.getSegmentMinDelta( loop.index ) // 60) }}:{{ '%06.3f' % (session.getSegmentMinDelta( loop.index ) % 60) }}
 better than the second-fastest time.
-
+{% endif %}
 <h2>Segment Hot Lap Average Time</h2>
 This is a simple average of the times through this segment of the track across all laps.<br/><br/>
 Your average time for this segment was: {{ '%02d' % (session.getSegmentHotTimes( loop.index )|floataverage // 60) }}:{{ '%06.3f' % (session.getSegmentHotTimes( loop.index )|floataverage % 60) }}
@@ -102,9 +113,10 @@ The standard deviation of your times for this segment was: {{ '%02d' % (session.
 <h2>Segment Hot Lap Minimum</h2>
 This is your best time through this segment.<br/><br/>
 Your minimum time for this segment was: {{ '%02d' % (session.getSegmentHotMinimum( loop.index ) // 60) }}:{{ '%06.3f' % (session.getSegmentHotMinimum( loop.index ) % 60) }}.
+{% if args.delta %}
 This is {{ '%02d' % (session.getSegmentHotMinDelta( loop.index ) // 60) }}:{{ '%06.3f' % (session.getSegmentHotMinDelta( loop.index ) % 60) }}
 better than the second-fastest time.
-
+{% endif %}
 <h2>Segment Time Lap Breakdown</h2>
 Here are the times for each lap through this segment:<br/>
 {% set outer_loop = loop %}
@@ -115,8 +127,23 @@ Lap {{ loop.index }}: {{ '%02d' % (time|float // 60) }}:{{ '%06.3f' % (time|floa
 This map shows all paths taken through this segment in blue, including the out lap and in lap. The fastest path
 is highlighted as a red trace.<br/>
 <img src="data:image/png;base64,{{ maps['segmentMaps'][ loop.index0 ] | safe }}">
+{% if args.brake %}
+<h2>Segment braking points map</h2>
+This map shows all points at which brake application was detected.
+<img src="data:image/png;base64,{{ maps['brakeMaps'][ loop.index0 ] | safe }}">
+{% endif %}
+{% if args.throttle %}
+<h2>Segment active throttle map</h2>
+This map shows where there is active throttle being applied. Note that we are using the "PPS" sensor, or (throttle) 
+pedal position sensor, for this value. The value we use to designate 'idle' may need to be 
+changed to get more accurate throttle maps. On the rendered map, the trace is shown in green where the PPS reports
+between 5 and 35 percent of available throttle, light green if between 35 and 70 percent, and orange where above 70
+percent.
+<img src="data:image/png;base64,{{ maps['throttleMaps'][ loop.index0 ] | safe }}">
+{% endif %}
 {% endfor %}
 {% endif %}
-</div>
+
+
 </body>
 </html>

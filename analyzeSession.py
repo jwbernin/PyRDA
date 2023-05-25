@@ -13,6 +13,8 @@ import os, os.path, shutil, io
 from PIL import Image
 import utils
 import base64
+import numpy as np
+import matplotlib.pyplot as plt
 
 outputDir = "../RDA-output"
 
@@ -20,15 +22,18 @@ parser = argparse.ArgumentParser(description='Run analysis on track data file')
 parser.add_argument('-f', '--file', action='append', help='Filename with data to be analyzed. Can be specified multiple times.')
 parser.add_argument('-v', '--verbose', action='count')
 parser.add_argument('-t', '--trackname', action='store', help='Name of track data is from, if not present in file (e.g. TrackAddict data). Can only analyze one track per run unless track name is present in datafile.')
-parser.add_argument('--text-results', action=argparse.BooleanOptionalAction, help='Show results in text in terminal (default: FALSE)', default=False)
+parser.add_argument('--text-results', action=argparse.BooleanOptionalAction, help='Show results in text in terminal', default=False)
+parser.add_argument('--gg-maps', action=argparse.BooleanOptionalAction, help='Show G-G (inline and lateral acceleration) plots', default=False)
 gengroup = parser.add_argument_group("General analysis options")
-gengroup.add_argument('--laps', action=argparse.BooleanOptionalAction, help='Show / don\'t show lap data (default: TRUE)', default=True)
-gengroup.add_argument('--segments', action=argparse.BooleanOptionalAction, help='Show / don\'t show segment data (default: FALSE)')
+gengroup.add_argument('--laps', action=argparse.BooleanOptionalAction, help='Show / don\'t show lap data', default=True)
+gengroup.add_argument('--segments', action=argparse.BooleanOptionalAction, help='Show / don\'t show segment data')
 gengroup.add_argument('--list-datapoints', action='store_true', help='List the data points available in the file(s)')
-gengroup.add_argument('--combined-lap-map', action=argparse.BooleanOptionalAction, help='Show a map of all laps driven (default: TRUE)', default=True)
-gengroup.add_argument('--individual-lap-maps', action=argparse.BooleanOptionalAction, help='Show maps of the individual laps (default: FALSE)', default=False)
+gengroup.add_argument('--combined-lap-map', action=argparse.BooleanOptionalAction, help='Show a map of all laps driven', default=True)
+gengroup.add_argument('--individual-lap-maps', action=argparse.BooleanOptionalAction, help='Show maps of the individual laps', default=False)
 segparser = parser.add_argument_group('Segment analysis options')
-segparser.add_argument('--delta', action=argparse.BooleanOptionalAction, help='Show segment time deltas from best segment time')
+segparser.add_argument('--delta', action=argparse.BooleanOptionalAction, help='Show segment time deltas from best segment time', default=True)
+segparser.add_argument('--brake', action=argparse.BooleanOptionalAction, help='Display segment maps showing brake application', default=True)
+segparser.add_argument('--throttle', action=argparse.BooleanOptionalAction, help='Display segment maps showing throttle application', default=True)
 
 args = parser.parse_args()
 
@@ -65,7 +70,7 @@ def analyze(session):
         textout('These datapoints are available:')
         for point in session.getDataPointsAvail():
             textout (f"- {point}")
-        return
+
 
     if args.laps:    
         textout("Lap times")
@@ -86,25 +91,51 @@ def analyze(session):
         imgData = sessionMap._to_png(3)
         mapsList['combinedLapMap'] = base64.b64encode(imgData).decode("utf-8")
 
+    if args.gg_maps:
+        x = []
+        y = []
+        for lap in session.getLaps():
+            for measurement in lap:
+                x.append(measurement["lateralAccel"])
+                y.append(measurement["inlineAccel"])
+        plt.plot(np.array(x), np.array(y), '.k')
+        imgBuf = io.BytesIO()
+        plt.savefig(imgBuf, format='png')
+        imgBuf.seek(0)
+        mapsList["sessionGGMap"] = base64.b64encode(imgBuf.read()).decode("utf-8")
+
     if args.individual_lap_maps:
         boundingBox = session.getImageBoundaries()
         location = session.getMapLocation()
 
         lapMaps = []
+        lapGGMaps = []
         for lap in session.getLaps():
             map = folium.Map(location=location, zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
             map.fit_bounds(boundingBox)
             mapPoints = []
+            x = []
+            y = []
             for measurement in lap:
                 mapPoints.append([measurement["GPSlat"], measurement["GPSlng"]])
+                x.append(measurement["lateralAccel"])
+                y.append(measurement["inlineAccel"])
             folium.PolyLine(mapPoints).add_to(map)
             imgData = map._to_png(3)
             lapMaps.append(base64.b64encode(imgData).decode("utf-8"))
+            plt.plot(np.array(x), np.array(y), '.k')
+            imgData = io.BytesIO()
+            plt.savefig(imgData, format='png')
+            imgData.seek(0)
+            lapGGMaps.append(base64.b64encode(imgData.read()).decode("utf-8"))
         mapsList["individualLapMaps"] = lapMaps
+        mapsList["individualGGmaps"] = lapGGMaps
 
     if args.segments:
         # Generate individual segment traces, plot on different maps.
         segmentMaps = []
+        brakeMaps = []
+        throttleMaps = []
         for segment in range(1, len(session.waypoints)+2):
             segmentNum = segment
             traces = sorted(session.getSegmentsByTime(segmentNum), key=lambda x: x['time'])
@@ -130,7 +161,35 @@ def analyze(session):
             map.fit_bounds(session.getSeriesBoundaries(traces[1]["path"]))
             imgData = map._to_png(3)
             segmentMaps.append(base64.b64encode(imgData).decode("utf-8"))
-            mapsList["segmentMaps"] = segmentMaps
+
+            # Work on fastest segment only (traces[0]) for brake/throttle maps
+            brakeMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
+            for point in traces[0]["path"]:
+                if point["brake"] > 0:
+                    folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="red").add_to(brakeMap)
+            brakeMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
+            imgData = brakeMap._to_png(3)
+            brakeMaps.append(base64.b64encode(imgData).decode("utf-8"))
+
+            throttleMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
+            for point in traces[0]["path"]:
+                # Even at idle, there is some throttle positive position. This value may require adjustment.
+                if point["throttle"] > 5:
+                    if point["throttle"] > 75:
+                        folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="orange").add_to(throttleMap)
+                    elif point["throttle"] > 35:
+                        folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="lightgreen").add_to(throttleMap)
+                    else:
+                        folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="green").add_to(throttleMap)
+            throttleMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
+            imgData = throttleMap._to_png(3)
+            throttleMaps.append(base64.b64encode(imgData).decode("utf-8"))
+
+
+        mapsList["segmentMaps"] = segmentMaps
+        mapsList["brakeMaps"] = brakeMaps
+        mapsList["throttleMaps"] = throttleMaps
+        
 
     fileLoader = FileSystemLoader('templates')
     env = Environment(loader=fileLoader)
