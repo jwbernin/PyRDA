@@ -37,6 +37,10 @@ segparser.add_argument('--throttle', action=argparse.BooleanOptionalAction, help
 
 args = parser.parse_args()
 
+def debugout(debuglevel, text):
+    if debuglevel >= args.verbose:
+        print(text)
+
 def textout(text):
     if args.text_results:
         print(text)
