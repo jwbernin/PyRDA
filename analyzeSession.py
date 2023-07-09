@@ -24,6 +24,7 @@ parser.add_argument('-v', '--verbose', action='count')
 parser.add_argument('-t', '--trackname', action='store', help='Name of track data is from, if not present in file (e.g. TrackAddict data). Can only analyze one track per run unless track name is present in datafile.')
 parser.add_argument('--text-results', action=argparse.BooleanOptionalAction, help='Show results in text in terminal', default=False)
 parser.add_argument('--gg-maps', action=argparse.BooleanOptionalAction, help='Show G-G (inline and lateral acceleration) plots', default=False)
+parser.add_argument('--gps-only', action=argparse.BooleanOptionalAction, help='Perform analysis only on GPS data (e.g. AIM Solo 2 non-DL data)', default=False)
 gengroup = parser.add_argument_group("General analysis options")
 gengroup.add_argument('--laps', action=argparse.BooleanOptionalAction, help='Show / don\'t show lap data', default=True)
 gengroup.add_argument('--segments', action=argparse.BooleanOptionalAction, help='Show / don\'t show segment data')
@@ -166,33 +167,35 @@ def analyze(session):
             imgData = map._to_png(3)
             segmentMaps.append(base64.b64encode(imgData).decode("utf-8"))
 
-            # Work on fastest segment only (traces[0]) for brake/throttle maps
-            brakeMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
-            for point in traces[0]["path"]:
-                if point["brake"] > 0:
-                    folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="red").add_to(brakeMap)
-            brakeMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
-            imgData = brakeMap._to_png(3)
-            brakeMaps.append(base64.b64encode(imgData).decode("utf-8"))
+            if not args.gps_only:
+                # Work on fastest segment only (traces[0]) for brake/throttle maps
+                brakeMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
+                for point in traces[0]["path"]:
+                    if point["brake"] > 0:
+                        folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="red").add_to(brakeMap)
+                brakeMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
+                imgData = brakeMap._to_png(3)
+                brakeMaps.append(base64.b64encode(imgData).decode("utf-8"))
 
-            throttleMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
-            for point in traces[0]["path"]:
-                # Even at idle, there is some throttle positive position. This value may require adjustment.
-                if point["throttle"] > 5:
-                    if point["throttle"] > 75:
-                        folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="orange").add_to(throttleMap)
-                    elif point["throttle"] > 35:
-                        folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="lightgreen").add_to(throttleMap)
-                    else:
-                        folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="green").add_to(throttleMap)
-            throttleMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
-            imgData = throttleMap._to_png(3)
-            throttleMaps.append(base64.b64encode(imgData).decode("utf-8"))
+                throttleMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
+                for point in traces[0]["path"]:
+                    # Even at idle, there is some throttle positive position. This value may require adjustment.
+                    if point["throttle"] > 5:
+                        if point["throttle"] > 75:
+                            folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="orange").add_to(throttleMap)
+                        elif point["throttle"] > 35:
+                            folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="lightgreen").add_to(throttleMap)
+                        else:
+                            folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="green").add_to(throttleMap)
+                throttleMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
+                imgData = throttleMap._to_png(3)
+                throttleMaps.append(base64.b64encode(imgData).decode("utf-8"))
 
 
         mapsList["segmentMaps"] = segmentMaps
-        mapsList["brakeMaps"] = brakeMaps
-        mapsList["throttleMaps"] = throttleMaps
+        if not args.gps_only:
+            mapsList["brakeMaps"] = brakeMaps
+            mapsList["throttleMaps"] = throttleMaps
         
 
     fileLoader = FileSystemLoader('templates')

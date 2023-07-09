@@ -127,6 +127,7 @@ Lap {{ loop.index }}: {{ '%02d' % (time|float // 60) }}:{{ '%06.3f' % (time|floa
 This map shows all paths taken through this segment in blue, including the out lap and in lap. The fastest path
 is highlighted as a red trace.<br/>
 <img src="data:image/png;base64,{{ maps['segmentMaps'][ loop.index0 ] | safe }}">
+{% if not args.gps_only %}
 {% if args.brake %}
 <h2>Segment braking points map</h2>
 This map shows all points at which brake application was detected.
@@ -141,9 +142,9 @@ between 5 and 35 percent of available throttle, light green if between 35 and 70
 percent.
 <img src="data:image/png;base64,{{ maps['throttleMaps'][ loop.index0 ] | safe }}">
 {% endif %}
+{% endif %}
 {% endfor %}
 {% endif %}
-
 
 </body>
 </html>
