@@ -35,15 +35,20 @@ class TrackSession:
             return None
         return self.sessioninfo[item]
 
-    def loadTrack(self):
+    def loadTrack(self, args):
         trackName = self.sessioninfo["trackName"]
+        if args.verbose:
+            print ("Searching for track: "+self.sessioninfo["trackName"]+".")
         if "VIR" in trackName.upper():
             if "full" in trackName.lower():
                 from tracks import VIRfull as track
         elif "SEBRING" in trackName.upper():
             from tracks import Sebring as track
         if "track" not in dir():
+            if args.verbose:
+                print("No track found!")
             return
+        
         self.sessioninfo["trackDescription"] = track.description
         self.trackStartFinish = track.startpoint
         self.waypoints = track.sectorEnds

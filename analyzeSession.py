@@ -216,7 +216,7 @@ def main():
     runs = []
     for file in args.file:
         dataReader = getFileImporter(file)
-        runs.append(dataReader.readSessionData())
+        runs.append(dataReader.readSessionData(args))
         runs[-1].addSessionInfo(sourcefile = file)
         runs[-1].trimEnds()
 

@@ -8,6 +8,7 @@ import pprint
 
 def getFileImporter(filename):
     if not os.path.isfile(filename):
+        print("Not a file!")
         return False
     with open(filename, "r") as sourceFile:
         line = sourceFile.readline()
@@ -35,7 +36,7 @@ class AiMImporter():
             "inlineAccel":"InlineAcc"
         }
 
-    def readSessionData(self):
+    def readSessionData(self, args):
         unparsedData = []
 
         with open(self.dataFile, "r") as fileHandle:
@@ -50,7 +51,10 @@ class AiMImporter():
         self.session.addSessionInfo(vehicle = unparsedData[2][1])
         self.session.addSessionInfo(driverName = unparsedData[3][1])
         
-        self.session.loadTrack()
+        if args.trackname:
+            self.session.addSessionInfo(trackName = args.trackname)
+            
+        self.session.loadTrack(args)
 
         # remove the metadata from the in-memory array
         for i in range(13):
@@ -68,16 +72,25 @@ class AiMImporter():
 
         # Process all datapoints
         for row in unparsedData:
-            self.session.addMeasurement(row[columnHeaders.index(self.dataLogPoints["time"])],
-                GPSlat = float(row[columnHeaders.index(self.dataLogPoints["GPSlat"])]),
-                GPSlng = float(row[columnHeaders.index(self.dataLogPoints["GPSlng"])]),
-                throttle = float(row[columnHeaders.index(self.dataLogPoints["throttle"])]),
-                brake = float(row[columnHeaders.index(self.dataLogPoints["brake"])]),
-                heading = float(row[columnHeaders.index(self.dataLogPoints["heading"])]),
-                steer = float(row[columnHeaders.index(self.dataLogPoints["steer"])]),
-                lateralAccel = float(row[columnHeaders.index(self.dataLogPoints["lateralAccel"])]),
-                inlineAccel = float(row[columnHeaders.index(self.dataLogPoints["inlineAccel"])])
-            )
+            if args.gps_only:
+                self.session.addMeasurement(row[columnHeaders.index(self.dataLogPoints["time"])],
+                    GPSlat = float(row[columnHeaders.index(self.dataLogPoints["GPSlat"])]),
+                    GPSlng = float(row[columnHeaders.index(self.dataLogPoints["GPSlng"])]),
+                    heading = float(row[columnHeaders.index(self.dataLogPoints["heading"])]),
+                    lateralAccel = float(row[columnHeaders.index(self.dataLogPoints["lateralAccel"])]),
+                    inlineAccel = float(row[columnHeaders.index(self.dataLogPoints["inlineAccel"])])
+                )
+            else:
+                self.session.addMeasurement(row[columnHeaders.index(self.dataLogPoints["time"])],
+                    GPSlat = float(row[columnHeaders.index(self.dataLogPoints["GPSlat"])]),
+                    GPSlng = float(row[columnHeaders.index(self.dataLogPoints["GPSlng"])]),
+                    throttle = float(row[columnHeaders.index(self.dataLogPoints["throttle"])]),
+                    brake = float(row[columnHeaders.index(self.dataLogPoints["brake"])]),
+                    heading = float(row[columnHeaders.index(self.dataLogPoints["heading"])]),
+                    steer = float(row[columnHeaders.index(self.dataLogPoints["steer"])]),
+                    lateralAccel = float(row[columnHeaders.index(self.dataLogPoints["lateralAccel"])]),
+                    inlineAccel = float(row[columnHeaders.index(self.dataLogPoints["inlineAccel"])])
+                )
                 
         return self.session
 
