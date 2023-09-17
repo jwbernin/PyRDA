@@ -24,15 +24,14 @@ def sortSegments(listToSort):
     pprint.pprint(listToSort)
     
   savePoints = listToSort[shortestSegmentIndex][1]
-
   del listToSort[shortestSegmentIndex]
-
   saveItem = [time, savePoints]
-
   return [saveItem].append(sortSegments(listToSort))
 
 def averageFilter(times):
   floatList = [float(x) for x in times]
+  if len(floatlist) == 0:
+    return 0
   return sum(floatList)/len(floatList)
 
 # We use statistics.pstdev() here because we're calculating the stdev 
@@ -41,11 +40,6 @@ def averageFilter(times):
 def stdDevFilter(times):
   floatList = [float(x) for x in times]
   return statistics.pstdev(floatList)
-    
-
-
-
-
 
 if __name__ == '__main__':
   print("This file should not be called directly.")
