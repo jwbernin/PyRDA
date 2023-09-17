@@ -39,6 +39,8 @@ def averageFilter(times):
 # we're working with all the lap times.
 def stdDevFilter(times):
   floatList = [float(x) for x in times]
+  if len(floatList) == 0:
+    return 0
   return statistics.pstdev(floatList)
 
 if __name__ == '__main__':
