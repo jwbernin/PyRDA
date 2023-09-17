@@ -30,7 +30,7 @@ def sortSegments(listToSort):
 
 def averageFilter(times):
   floatList = [float(x) for x in times]
-  if len(floatlist) == 0:
+  if len(floatList) == 0:
     return 0
   return sum(floatList)/len(floatList)
 
