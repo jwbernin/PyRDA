@@ -25,6 +25,7 @@ parser.add_argument('-t', '--trackname', action='store', help='Name of track dat
 parser.add_argument('--text-results', action=argparse.BooleanOptionalAction, help='Show results in text in terminal', default=False)
 parser.add_argument('--gg-maps', action=argparse.BooleanOptionalAction, help='Show G-G (inline and lateral acceleration) plots', default=False)
 parser.add_argument('--gps-only', action=argparse.BooleanOptionalAction, help='Perform analysis only on GPS data (e.g. AIM Solo 2 non-DL data)', default=False)
+parser.add_argument('--save-image-files', action=argparse.BooleanOptionalAction, help='Save individual image files alongside PDF', default=False)
 gengroup = parser.add_argument_group("General analysis options")
 gengroup.add_argument('--laps', action=argparse.BooleanOptionalAction, help='Show / don\'t show lap data', default=True)
 gengroup.add_argument('--segments', action=argparse.BooleanOptionalAction, help='Show / don\'t show segment data')
@@ -50,8 +51,7 @@ def analyze(session):
     mapsList = {}
     outputFilename = '-'.join([session.getSessionInfo("driverName"),
                                session.getSessionInfo("trackName"),
-                               session.getSessionInfo("sessionDate"),
-                               session.getSessionInfo("sessionTime")])
+                               session.getSessionInfo("simpleDate")])
     if os.path.exists(outputFilename+'.pdf'):
         increment=1
         while os.path.exists(outputFilename+"-"+str(increment)+'.pdf'):
@@ -95,6 +95,10 @@ def analyze(session):
         folium.PolyLine(mapPoints).add_to(sessionMap)
         imgData = sessionMap._to_png(3)
         mapsList['combinedLapMap'] = base64.b64encode(imgData).decode("utf-8")
+        if args.save_image_files:
+            filename = "combinedLapMap.png"
+            with open(filename, 'wb') as f:
+                f.write(imgData)
 
     if args.gg_maps:
         x = []
@@ -218,7 +222,7 @@ def main():
         dataReader = getFileImporter(file)
         runs.append(dataReader.readSessionData(args))
         runs[-1].addSessionInfo(sourcefile = file)
-        runs[-1].trimEnds()
+        runs[-1].trimEnds(args)
 
     # Prepare the output directory - create if necessary, clean up if necessary
     if not os.path.exists(outputDir):

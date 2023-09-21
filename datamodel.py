@@ -13,6 +13,7 @@
 import pprint
 import utils
 import math
+from datetime import datetime
 class TrackSession:
     def __init__(self):
         self.laps = []
@@ -31,6 +32,10 @@ class TrackSession:
     def getSessionInfo(self, item):
         if '' == item:
             return self.sessioninfo
+        if 'simpleDate' == item:
+            dateObj = datetime.strptime(self.sessioninfo["sessionDate"]+" "+self.sessioninfo["sessionTime"], "%A, %B %d, %Y %H:%M %p")
+            dateStr = dateObj.strftime("%Y-%m-%d-%H%M")
+            return dateStr
         if item not in self.sessioninfo.keys():
             return None
         return self.sessioninfo[item]
@@ -103,21 +108,34 @@ class TrackSession:
         measurement["segment"] = self.curSegment
         self.laps[-1].append(measurement)
 
-    def trimEnds(self):
+    def trimEnds(self, args):
         # Trims the start of the out lap and the end of the last lap so that we don't have GPS tracks 
         # following us into and through the paddock.
+        numLaps = len(self.laps)
         inLapPoints = len(self.laps[0])
         outLapPoints = len(self.laps[-1])
+        if args.verbose:
+            print ("In lap datapoints: "+str(inLapPoints))
+            print ("Second lap datapoints: "+str(len(self.laps[1])))
+            if args.verbose > 3:
+                print("Distance to track start point: "+str(utils.calculateGPSdistance(self.enterTrackPoint, (self.laps[0][0]["GPSlat"], self.laps[0][0]["GPSlng"]))) )
+
         # Starting at datapoint 0, if we are not within 10 feet of enterTrackPoint, we don't care about this datapoint
+        
         while (15 < utils.calculateGPSdistance(self.enterTrackPoint, (self.laps[0][0]["GPSlat"], self.laps[0][0]["GPSlng"]))):
             del self.laps[0][0]
+            if args.verbose and args.verbose > 4:
+                print("Distance to NEW track start point: "+str(utils.calculateGPSdistance(self.enterTrackPoint, (self.laps[0][0]["GPSlat"], self.laps[0][0]["GPSlng"]))) )
+            if len(self.laps[0]) == 0:
+                del self.laps[0]
+                break
 
         # starting with the last datapoint and working backwards, if we're not within 10 feet of exitTrackPoint, we
         # get rid of the point
         while (15 < utils.calculateGPSdistance(self.exitTrackPoint, (self.laps[-1][-1]["GPSlat"], self.laps[-1][-1]["GPSlng"]))):
             del self.laps[-1][-1]
 
-        assert len(self.laps[0]) < inLapPoints
+        assert (len(self.laps) < numLaps) or (len(self.laps[0]) < inLapPoints)
         assert len(self.laps[-1]) < outLapPoints
 
     def getLastLocation(self):
@@ -254,6 +272,8 @@ class TrackSession:
     def getSegmentHotMinimum(self, segmentNum):
         segments = self.getSegmentsByTime(segmentNum)
         times = [float(item["time"]) for item in segments[1:-2]]
+        if len(times) == 0:
+            return 0
         return min(times)
     
     def getSegmentMinDelta(self, segmentNum):
@@ -264,4 +284,9 @@ class TrackSession:
     def getSegmentHotMinDelta(self, segmentNum):
         segments = self.getSegmentsByTime(segmentNum)
         times = sorted([float(item["time"]) for item in segments[1:-2]])
-        return times[1]-times[0]
+        if len(times) == 0:
+            return 0
+        if len(times) > 1:
+            return times[1]-times[0]
+        else:
+            return times[0]
