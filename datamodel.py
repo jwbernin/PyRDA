@@ -32,8 +32,12 @@ class TrackSession:
     def getSessionInfo(self, item):
         if '' == item:
             return self.sessioninfo
+        if 'sheetDateTime' == item:
+            dateObj = datetime.strptime(self.sessioninfo["sessionDate"]+" "+self.sessioninfo["sessionTime"], "%A, %B %d, %Y %I:%M %p")
+            dateStr = dateObj.strftime("%m-%d %H:%M")
+            return dateStr
         if 'simpleDate' == item:
-            dateObj = datetime.strptime(self.sessioninfo["sessionDate"]+" "+self.sessioninfo["sessionTime"], "%A, %B %d, %Y %H:%M %p")
+            dateObj = datetime.strptime(self.sessioninfo["sessionDate"]+" "+self.sessioninfo["sessionTime"], "%A, %B %d, %Y %I:%M %p")
             dateStr = dateObj.strftime("%Y-%m-%d-%H%M")
             return dateStr
         if item not in self.sessioninfo.keys():
@@ -53,6 +57,8 @@ class TrackSession:
             if args.verbose:
                 print("No track found!")
             return
+        if args.verbose:
+            print ("Track found.")
         
         self.sessioninfo["trackDescription"] = track.description
         self.trackStartFinish = track.startpoint
