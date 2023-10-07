@@ -302,11 +302,7 @@ class TrackSession:
         times = sorted([float(item["time"]) for item in segments[1:-2]])
         if len(times) == 0:
             return 0
-<<<<<<< Updated upstream
         if len(times) > 1:
             return times[1]-times[0]
         else:
             return times[0]
-=======
-        return times[1]-times[0]
->>>>>>> Stashed changes
