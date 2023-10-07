@@ -51,7 +51,11 @@ def analyze(session):
     mapsList = {}
     outputFilename = '-'.join([session.getSessionInfo("driverName"),
                                session.getSessionInfo("trackName"),
-                               session.getSessionInfo("simpleDate")])
+                               session.getSessionInfo("simpleDate"),
+                               session.getSessionInfo("sessionTime")])
+    outputFilename = outputFilename.replace(" ", "-")
+    outputFilename = outputFilename.replace(",", "-")
+    outputFilename = outputFilename.replace(":", "-")
     if os.path.exists(outputFilename+'.pdf'):
         increment=1
         while os.path.exists(outputFilename+"-"+str(increment)+'.pdf'):
@@ -208,8 +212,14 @@ def analyze(session):
     env.filters['stddev'] = utils.stdDevFilter
     template = env.get_template('render.j2')
     output = template.render(session=session, args=args, maps=mapsList)
+    if args.verbose:
+        print ("Output size: "+str(len(output)))
     file_content = from_string(output, False)
+    if args.verbose:
+        print ("File content length: "+str(len(file_content)))
     try:
+        if args.verbose:
+            print ("Writing: "+outputDir+"/"+outputFilename)
         with open(outputDir+'/'+outputFilename, 'wb+') as file:
             file.write(file_content)
 

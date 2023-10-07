@@ -29,18 +29,18 @@ def sortSegments(listToSort):
   return [saveItem].append(sortSegments(listToSort))
 
 def averageFilter(times):
-  floatList = [float(x) for x in times]
-  if len(floatList) == 0:
+  if len(times) == 0:
     return 0
+  floatList = [float(x) for x in times]
   return sum(floatList)/len(floatList)
 
 # We use statistics.pstdev() here because we're calculating the stdev 
 # of the entire series, we're not working ith just a sample of lap times, 
 # we're working with all the lap times.
 def stdDevFilter(times):
-  floatList = [float(x) for x in times]
-  if len(floatList) == 0:
+  if len(times) == 0:
     return 0
+  floatList = [float(x) for x in times]
   return statistics.pstdev(floatList)
 
 if __name__ == '__main__':

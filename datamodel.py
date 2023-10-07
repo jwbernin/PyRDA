@@ -53,6 +53,8 @@ class TrackSession:
                 from tracks import VIRfull as track
         elif "SEBRING" in trackName.upper():
             from tracks import Sebring as track
+        elif "ROEBLING" in trackName.upper():
+            from tracks import Roebling as track
         if "track" not in dir():
             if args.verbose:
                 print("No track found!")
@@ -263,16 +265,22 @@ class TrackSession:
     def getSegmentTimes(self, segmentNum):
         segments = self.getSegmentsByTime(segmentNum)
         times = [float(item["time"]) for item in segments]
+        if len(times) == 0:
+            return 0
         return times
     
     def getSegmentHotTimes(self, segmentNum):
         segments = self.getSegmentsByTime(segmentNum)
         times = [float(item["time"]) for item in segments[1:-2]]
+        if len(times) == 0:
+            return 0
         return times
     
     def getSegmentMinimum(self, segmentNum):
         segments = self.getSegmentsByTime(segmentNum)
         times = [float(item["time"]) for item in segments]
+        if len(times) == 0:
+            return 0
         return min(times)
     
     def getSegmentHotMinimum(self, segmentNum):
@@ -285,6 +293,8 @@ class TrackSession:
     def getSegmentMinDelta(self, segmentNum):
         segments = self.getSegmentsByTime(segmentNum)
         times = sorted([float(item["time"]) for item in segments])
+        if len(times) == 0:
+            return 0
         return times[1]-times[0]
     
     def getSegmentHotMinDelta(self, segmentNum):
@@ -292,7 +302,11 @@ class TrackSession:
         times = sorted([float(item["time"]) for item in segments[1:-2]])
         if len(times) == 0:
             return 0
+<<<<<<< Updated upstream
         if len(times) > 1:
             return times[1]-times[0]
         else:
             return times[0]
+=======
+        return times[1]-times[0]
+>>>>>>> Stashed changes
