@@ -240,8 +240,14 @@ def analyze(session):
         textout (f'Error encountered: {error}')
 
 def checkValidity(run):
-    if args.verbose:
+    if not args.verbose:
+        args.verbose=0
+    if args.verbose > 0:
         print("Checking run data validity")
+    print ("Checking for lap data.")
+    for idx,f in enumerate(run.getLaps()):
+        if args.verbose > 2:
+            print ("Lap "+str(idx)+" has "+str(len(f))+" data points")
 
 def main():
     runs = []
