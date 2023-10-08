@@ -140,11 +140,15 @@ class TrackSession:
 
         # starting with the last datapoint and working backwards, if we're not within 10 feet of exitTrackPoint, we
         # get rid of the point
-        while (15 < utils.calculateGPSdistance(self.exitTrackPoint, (self.laps[-1][-1]["GPSlat"], self.laps[-1][-1]["GPSlng"]))):
-            del self.laps[-1][-1]
+        if not args.no_trim_tail:
+            while (10 < utils.calculateGPSdistance(self.exitTrackPoint, (self.laps[-1][-1]["GPSlat"], self.laps[-1][-1]["GPSlng"]))):
+                if args.verbose and args.verbose > 4:
+                    print ("Distance to track exit point:"+str(utils.calculateGPSdistance(self.exitTrackPoint, (self.laps[-1][-1]["GPSlat"], self.laps[-1][-1]["GPSlng"]))))
+                del self.laps[-1][-1]
 
         assert (len(self.laps) < numLaps) or (len(self.laps[0]) < inLapPoints)
-        assert len(self.laps[-1]) < outLapPoints
+        assert args.no_trim_tail or (len(self.laps[-1]) < outLapPoints)
+        assert len(self.laps[-1]) > 0
 
     def getLastLocation(self):
         if 0 == len(self.laps):
@@ -198,7 +202,7 @@ class TrackSession:
         sessRet = []
         for lap in self.laps:
             thisLap = []
-            for segment in range(len(self.waypoints)):
+            for segment in range(len(self.waypoints)+1):
                 thisLap.append([])              
             for measurement in lap:
                 thisLap[measurement["segment"]-1].append(measurement)
@@ -239,6 +243,9 @@ class TrackSession:
         return [southWest, northEast]
 
     def getSeriesCenterpoint(self, measurements):
+        if 2 > len(measurements):
+            print ("Measurements wrong!")
+            pprint.pprint(measurements)
         [sw, ne] = self.getSeriesBoundaries(measurements)
         return [ (sw[0]+ne[0])/2, (sw[1]+ne[1])/2 ]
 
@@ -257,7 +264,10 @@ class TrackSession:
             for measurement in lap:
                 if measurement["segment"] == segNum:
                     shortSegment.append(measurement)
-            segTime = shortSegment[-1]["time"] - shortSegment[0]["time"]
+            if len(shortSegment) > 1:
+                segTime = shortSegment[-1]["time"] - shortSegment[0]["time"]
+            else:
+                segTime = 0
             segments.append({"time": segTime, "path": shortSegment, "lap": lapNum})
             shortSegment=[]
         return segments

@@ -9,7 +9,7 @@ import math
 import argparse
 from jinja2 import Environment, FileSystemLoader
 from pdfkit import from_string
-import os, os.path, shutil, io
+import os, os.path, sys, io
 from PIL import Image
 import utils
 import base64
@@ -36,6 +36,8 @@ segparser = parser.add_argument_group('Segment analysis options')
 segparser.add_argument('--delta', action=argparse.BooleanOptionalAction, help='Show segment time deltas from best segment time', default=True)
 segparser.add_argument('--brake', action=argparse.BooleanOptionalAction, help='Display segment maps showing brake application', default=True)
 segparser.add_argument('--throttle', action=argparse.BooleanOptionalAction, help='Display segment maps showing throttle application', default=True)
+spcparser = parser.add_argument_group("Special arguments")
+spcparser.add_argument('--no-trim-tail', action='store_true', help="Don't trim the in-lap - use when session is red-flagged")
 
 args = parser.parse_args()
 
@@ -62,6 +64,13 @@ def analyze(session):
             increment+=1
         outputFilename += '-'+str(increment)
     outputFilename += '.pdf'
+
+    if args.verbose and args.verbose > 2:
+        print ("Number of laps: "+str(len(session.getLapTimes())))
+        print ("Number of segments:" +str(len(session.getSegments())))
+        for idx,f in enumerate(session.getSegments()):
+            print ("Number of items in segment "+str(idx)+": "+str(len(f)))
+            
 
     # Tell us which session we're looking at
     textout(f'Analyzing data from { session.getSessionInfo("sourcefile") }')
@@ -152,14 +161,18 @@ def analyze(session):
         for segment in range(1, len(session.waypoints)+2):
             segmentNum = segment
             traces = sorted(session.getSegmentsByTime(segmentNum), key=lambda x: x['time'])
-
+                
             # if this is the last segment and the fastest lap is the last lap, discard it because that's the in-segment
             # and we want to see the actual fastest during-segment. The in-segment is likely to be the fastest simply because
             # it's so much shorter, even if we are slower
             if segmentNum == len(session.waypoints)+1 and session.numLaps == int(traces[0]["lap"]):
                 del traces[0]
 
-            map = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
+            try:
+                map = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
+            except:
+                pprint.pprint(traces[0])
+                sys.exit(1)
 
             for trace in traces:
                 mapPoints = []
@@ -226,6 +239,10 @@ def analyze(session):
     except Exception as error:
         textout (f'Error encountered: {error}')
 
+def checkValidity(run):
+    if args.verbose:
+        print("Checking run data validity")
+
 def main():
     runs = []
     for file in args.file:
@@ -239,6 +256,7 @@ def main():
         os.makedirs(outputDir)
 
     for run in runs:
+        checkValidity(run)
         analyze(run)
 
 if __name__ == '__main__':
