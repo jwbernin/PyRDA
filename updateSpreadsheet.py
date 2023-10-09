@@ -64,7 +64,7 @@ def analyze(dirName, sessions):
     for idx, session in enumerate(sessions):
         column = chr(ord('B')+idx)
         sheet[column+'6'] = session.getSessionInfo("sheetDateTime")
-        for lidx, lapTime in enumerate(session.getLapTimes()):
+        for lidx, lapTime in enumerate(session.getLapTimes()[1:-1]):
             sheet[column+str(7+lidx)] = datetime.timedelta(seconds=lapTime)
             sheet[column+str(7+lidx)].number_format = "mm:ss.000"
         sheet[column+'25'] = '=_xlfn.STDEV.P('+column+'7:'+column+'21)'
@@ -89,7 +89,6 @@ def slurpDir(dirName):
         dataReader = getFileImporter(file)
         runs.append(dataReader.readSessionData(args))
         runs[-1].addSessionInfo(sourcefile = file)
-        runs[-1].trimEnds(args)
 
 
     analyze(os.path.basename(dirName), runs)
