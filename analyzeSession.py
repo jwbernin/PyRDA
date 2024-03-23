@@ -169,16 +169,21 @@ def analyze(session):
                 del traces[0]
 
             try:
-                map = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
+                map = folium.Map(location=location, zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
             except:
                 pprint.pprint(traces[0])
                 sys.exit(1)
 
             for trace in traces:
                 mapPoints = []
+                if args.verbose > 1:
+                    print ("Trace length: "+str(len(trace)))
                 for pt in trace["path"]:
                     mapPoints.append([pt["GPSlat"], pt["GPSlng"]])
-                folium.PolyLine(mapPoints, smooth_factor=0.0).add_to(map)
+                if 0 < len(mapPoints):
+                    folium.PolyLine(mapPoints, smooth_factor=0.0).add_to(map)
+                else:
+                    print ("No mapPoints to plot!")
 
             mapPoints = []
             for pt in traces[0]["path"]:
@@ -245,9 +250,11 @@ def checkValidity(run):
     if args.verbose > 0:
         print("Checking run data validity")
     print ("Checking for lap data.")
-    for idx,f in enumerate(run.getLaps()):
-        if args.verbose > 2:
-            print ("Lap "+str(idx)+" has "+str(len(f))+" data points")
+    f = len(run.getLaps())
+    print ("%d laps detected." % f)
+#    if args.verbose > 2:
+
+#        print ("Lap "+str(idx)+" has "+str(len(f))+" data points")
 
 def main():
     runs = []

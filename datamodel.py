@@ -243,9 +243,9 @@ class TrackSession:
         return [southWest, northEast]
 
     def getSeriesCenterpoint(self, measurements):
-        if 2 > len(measurements):
-            print ("Measurements wrong!")
-            pprint.pprint(measurements)
+        #if 2 > len(measurements):
+        #    print ("Measurements wrong!")
+        #    pprint.pprint(measurements)
         [sw, ne] = self.getSeriesBoundaries(measurements)
         return [ (sw[0]+ne[0])/2, (sw[1]+ne[1])/2 ]
 
