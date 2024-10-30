@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Update lap time record spreadsheet
 parser.add_argument('-d', '--dir', action='append', help='Directory containing CSV datafiles with lap data to be recorded.')
 parser.add_argument('-v', '--verbose', action='count')
 parser.add_argument('-t', '--trackname', action='store', help='Name of track data is from, if not present in file.')
-parser.add_argument('--gps-only', action=argparse.BooleanOptionalAction, help='Perform analysis only on GPS data (e.g. AIM Solo 2 non-DL data)', default=False)
+parser.add_argument('--gps-only', action='store_true', help='Perform analysis only on GPS data (e.g. AIM Solo 2 non-DL data)', default=False)
 
 args = parser.parse_args()
 
