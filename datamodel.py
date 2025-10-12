@@ -95,6 +95,7 @@ class TrackSession:
                     # We have crossed the boundary, but only add a new lap if the current lap has
                     # over 100 datapoints.
                     if len(self.laps[-1]) > 100:
+                        print ("Adding (empty) lap...")
                         self.addLap()
                         self.curLap += 1
                         self.curSegment = 1
@@ -110,6 +111,7 @@ class TrackSession:
                 if utils.calculateGPSdistance(curPoint, nextWaypoint) < 25:
                     # Distance is decreasing until we cross. When distance increases, we have crossed
                     if utils.calculateGPSdistance(curPoint, nextWaypoint) > utils.calculateGPSdistance(prevPoint, nextWaypoint):
+                        print ("Increment segment...")
                         self.curSegment += 1
 
         measurement["lap"] = self.curLap
