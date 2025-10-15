@@ -29,6 +29,8 @@ def sortSegments(listToSort):
   return [saveItem].append(sortSegments(listToSort))
 
 def averageFilter(times):
+  if type(times) == type(int):
+    return times
   if len(times) == 0:
     return 0
   floatList = [float(x) for x in times]

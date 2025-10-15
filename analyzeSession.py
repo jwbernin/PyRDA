@@ -42,7 +42,7 @@ spcparser.add_argument('--no-trim-tail', action='store_true', help="Don't trim t
 args = parser.parse_args()
 
 def debugout(debuglevel, text):
-    if debuglevel >= args.verbose:
+    if args.verbose and debuglevel >= args.verbose:
         print(text)
 
 def textout(text):
@@ -50,6 +50,7 @@ def textout(text):
         print(text)
 
 def analyze(session):
+    debugout(1, "Entered analyze")
     mapsList = {}
     outputFilename = '-'.join([session.getSessionInfo("driverName"),
                                session.getSessionInfo("trackName"),
@@ -65,55 +66,61 @@ def analyze(session):
         outputFilename += '-'+str(increment)
     outputFilename += '.pdf'
 
-    if args.verbose and args.verbose > 2:
-        print ("Number of laps: "+str(len(session.getLapTimes())))
-        print ("Number of segments:" +str(len(session.getSegments())))
-        for idx,f in enumerate(session.getSegments()):
-            print ("Number of items in segment "+str(idx)+": "+str(len(f)))
+#    debugout (2, "Number of laps: "+str(len(session.getLapTimes())))
+#    debugout (2, "Number of segments:" +str(len(session.getSegments())))
+#    for idx,f in enumerate(session.getSegments()):
+#        debugout (2, "Number of items in segment "+str(idx)+": "+str(len(f)))
             
 
     # Tell us which session we're looking at
-    textout(f'Analyzing data from { session.getSessionInfo("sourcefile") }')
-    if session.getSessionInfo('trackName') is not None:
-        textout(f'Track name: { session.getSessionInfo("trackName") }') 
-    if session.getSessionInfo('trackDescription') is not None:
-        textout(f'Track description: { session.getSessionInfo("trackDescription") }') 
-    if session.getSessionInfo('sessionDate') is not None:
-        textout(f'Session date: { session.getSessionInfo("sessionDate") }') 
-    if session.getSessionInfo('sessionTime') is not None:
-        textout(f'Session time: { session.getSessionInfo("sessionTime") }') 
+#    textout(f'Analyzing data from { session.getSessionInfo("sourcefile") }')
+#    if session.getSessionInfo('trackName') is not None:
+#        textout(f'Track name: { session.getSessionInfo("trackName") }') 
+#    if session.getSessionInfo('trackDescription') is not None:
+#        textout(f'Track description: { session.getSessionInfo("trackDescription") }') 
+#    if session.getSessionInfo('sessionDate') is not None:
+#        textout(f'Session date: { session.getSessionInfo("sessionDate") }') 
+#    if session.getSessionInfo('sessionTime') is not None:
+#        textout(f'Session time: { session.getSessionInfo("sessionTime") }') 
 
-    textout ("")
-    if args.list_datapoints:
-        textout('These datapoints are available:')
-        for point in session.getDataPointsAvail():
-            textout (f"- {point}")
+#    textout ("")
+#    if args.list_datapoints:
+#        textout('These datapoints are available:')
+#        for point in session.getDataPointsAvail():
+#            textout (f"- {point}")
 
 
     if args.laps:    
+        debugout(1, "Generating lap times")
         textout("Lap times")
         textout("---------")
         for count,lap in enumerate(session.getLapTimes()):
             textout(f"Lap { count }: {math.trunc(lap/60):02}:{lap%60:0>6.3f}")
 
     if args.combined_lap_map:
+        debugout (1, "Generating combined lap map")
         boundingBox = session.getImageBoundaries()
         location = session.getMapLocation()
         mapPoints = []
         sessionMap = folium.Map(location=location, zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
         sessionMap.fit_bounds(boundingBox)
+        debugout(1, "Adding combined lap map datapoints")
         for lap in session.getLaps():
             for measurement in lap:
                 mapPoints.append([measurement["GPSlat"], measurement["GPSlng"]])
         folium.PolyLine(mapPoints).add_to(sessionMap)
+        debugout(1, "Generating image data")
         imgData = sessionMap._to_png(3)
+        debugout(1, "Encoding in base64")
         mapsList['combinedLapMap'] = base64.b64encode(imgData).decode("utf-8")
+        debugout(1, "Going to save PNG image")
         if args.save_image_files:
             filename = "combinedLapMap.png"
             with open(filename, 'wb') as f:
                 f.write(imgData)
 
     if args.gg_maps:
+        debugout(1, "Generating G-G map")
         x = []
         y = []
         for lap in session.getLaps():
@@ -127,6 +134,7 @@ def analyze(session):
         mapsList["sessionGGMap"] = base64.b64encode(imgBuf.read()).decode("utf-8")
 
     if args.individual_lap_maps:
+        debugout(1, "Generating individual lap maps")
         boundingBox = session.getImageBoundaries()
         location = session.getMapLocation()
 
@@ -154,11 +162,14 @@ def analyze(session):
         mapsList["individualGGmaps"] = lapGGMaps
 
     if args.segments:
+        debugout(1, "Generating segment maps")
         # Generate individual segment traces, plot on different maps.
         segmentMaps = []
         brakeMaps = []
         throttleMaps = []
-        for segment in range(1, len(session.waypoints)+2):
+        location = session.getMapLocation()
+        for segment in range(1, len(session.waypoints)+1):
+            debugout(2, "Working on segment "+str(segment))
             segmentNum = segment
             traces = sorted(session.getSegmentsByTime(segmentNum), key=lambda x: x['time'])
                 
@@ -170,8 +181,10 @@ def analyze(session):
 
             try:
                 map = folium.Map(location=location, zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
-            except:
+            except Exception as e:
                 pprint.pprint(traces[0])
+                print(type(e))
+                print(e.args)
                 sys.exit(1)
 
             for trace in traces:
@@ -188,35 +201,38 @@ def analyze(session):
             mapPoints = []
             for pt in traces[0]["path"]:
                 mapPoints.append([pt["GPSlat"], pt["GPSlng"]])
-            folium.PolyLine(mapPoints, color="red", smooth_factor=0.0).add_to(map)
-            map.fit_bounds(session.getSeriesBoundaries(traces[1]["path"]))
-            imgData = map._to_png(3)
-            segmentMaps.append(base64.b64encode(imgData).decode("utf-8"))
+            if len(mapPoints) == 0:
+                debugout(1, "No map points in segment "+str(segmentNum))
+            else:
+                folium.PolyLine(mapPoints, color="red", smooth_factor=0.0).add_to(map)
+                map.fit_bounds(session.getSeriesBoundaries(traces[1]["path"]))
+                imgData = map._to_png(3)
+                segmentMaps.append(base64.b64encode(imgData).decode("utf-8"))
 
-            if not args.gps_only:
-                # Work on fastest segment only (traces[0]) for brake/throttle maps
-                brakeMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
-                for point in traces[0]["path"]:
-                    if point["brake"] > 0:
-                        folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="red").add_to(brakeMap)
-                brakeMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
-                imgData = brakeMap._to_png(3)
-                brakeMaps.append(base64.b64encode(imgData).decode("utf-8"))
-
-                throttleMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
-                for point in traces[0]["path"]:
-                    # Even at idle, there is some throttle positive position. This value may require adjustment.
-                    if point["throttle"] > 5:
-                        if point["throttle"] > 75:
-                            folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="orange").add_to(throttleMap)
-                        elif point["throttle"] > 35:
-                            folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="lightgreen").add_to(throttleMap)
-                        else:
-                            folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="green").add_to(throttleMap)
-                throttleMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
-                imgData = throttleMap._to_png(3)
-                throttleMaps.append(base64.b64encode(imgData).decode("utf-8"))
-
+                if not args.gps_only:
+                    # Work on fastest segment only (traces[0]) for brake/throttle maps
+                    brakeMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
+                    for point in traces[0]["path"]:
+                        if point["brake"] > 0:
+                            folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="red").add_to(brakeMap)
+                    brakeMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
+                    imgData = brakeMap._to_png(3)
+                    brakeMaps.append(base64.b64encode(imgData).decode("utf-8"))
+    
+                    throttleMap = folium.Map(location=session.getSeriesCenterpoint(traces[0]["path"]), zoom_start=15, tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", attr="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community")
+                    for point in traces[0]["path"]:
+                        # Even at idle, there is some throttle positive position. This value may require adjustment.
+                        if point["throttle"] > 5:
+                            if point["throttle"] > 75:
+                                folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="orange").add_to(throttleMap)
+                            elif point["throttle"] > 35:
+                                folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="lightgreen").add_to(throttleMap)
+                            else:
+                                folium.CircleMarker(location=[point["GPSlat"], point["GPSlng"]], radius=1, color="green").add_to(throttleMap)
+                    throttleMap.fit_bounds(session.getSeriesBoundaries(traces[0]["path"]))
+                    imgData = throttleMap._to_png(3)
+                    throttleMaps.append(base64.b64encode(imgData).decode("utf-8"))
+    
 
         mapsList["segmentMaps"] = segmentMaps
         if not args.gps_only:
@@ -252,9 +268,9 @@ def checkValidity(run):
     print ("Checking for lap data.")
     f = len(run.getLaps())
     print ("%d laps detected." % f)
-#    if args.verbose > 2:
+#    for lap in run.getLaps():
+#      debugout(2, "Lap data points: "+str(len(lap)))
 
-#        print ("Lap "+str(idx)+" has "+str(len(f))+" data points")
 
 def main():
     runs = []
@@ -269,7 +285,9 @@ def main():
         os.makedirs(outputDir)
 
     for run in runs:
+        debugout(1, "Checking run validity")
         checkValidity(run)
+        debugout(1, "Analyzing run")
         analyze(run)
 
 if __name__ == '__main__':

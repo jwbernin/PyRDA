@@ -14,6 +14,7 @@ import pprint
 import utils
 import math
 from datetime import datetime
+
 class TrackSession:
     def __init__(self):
         self.laps = []
@@ -21,8 +22,9 @@ class TrackSession:
         self.numLaps = 0
         self.trackStartFinish = ()
         self.waypoints = []
-        self.curLap = 1
-        self.curSegment = 1
+        self.curLap = 0
+        self.curSegment = 0
+        self.nextWaypoint = None
 
     # Add session metadata
     def addSessionInfo(self, **kwargs):
@@ -67,6 +69,7 @@ class TrackSession:
         self.waypoints = track.sectorEnds
         self.enterTrackPoint = track.enterTrackPoint
         self.exitTrackPoint = track.exitTrackPoint
+        self.nextWaypoint = self.enterTrackPoint
 
     def addLap(self):
         newLap = []
@@ -74,7 +77,6 @@ class TrackSession:
         self.numLaps += 1
         assert self.numLaps == len(self.laps)
 
-    # TODO: This is buggy. Refactor.
     def addMeasurement(self, timeChop, **kwargs):
         if 0 == len(self.laps):
             self.addLap()
@@ -83,36 +85,42 @@ class TrackSession:
         for k,v in kwargs.items():
             measurement[k]=v
 
-        # Have we crossed the start/finish boundary?
         prevPoint = self.getLastLocation()
-        # If this is our first point, don't do any of these calculations.
-        if None != prevPoint:
-            curPoint = (measurement["GPSlat"], measurement["GPSlng"])
-            # Are we within 30 feet of the start/finish point?
-            if utils.calculateGPSdistance(curPoint, self.trackStartFinish) < 30:
-                # We are decreasing coming in. When we cross, we will start increasing.
-                if utils.calculateGPSdistance(curPoint, self.trackStartFinish) > utils.calculateGPSdistance(prevPoint, self.trackStartFinish):
-                    # We have crossed the boundary, but only add a new lap if the current lap has
-                    # over 100 datapoints.
-                    if len(self.laps[-1]) > 100:
-                        print ("Adding (empty) lap...")
-                        self.addLap()
-                        self.curLap += 1
-                        self.curSegment = 1
 
-            # Have we crossed a segment boundary?
-            if 0 != self.curSegment:
-                # Figure out if we need to increment the segment number
-                if self.curSegment == len(self.waypoints)+1:
-                    nextWaypoint = self.trackStartFinish
+        curPoint = (measurement["GPSlat"], measurement["GPSlng"])
+
+        prevDistance = utils.calculateGPSdistance(prevPoint, self.nextWaypoint)
+        curDistance = utils.calculateGPSdistance(curPoint, self.nextWaypoint)
+        pointsinCurLap = len(self.laps[-1])
+
+        if None == prevPoint:
+            self.curLap = 0
+            self.curSegment = 0
+            prevDistance = 10000  # Artificially high number to ensure it is always greater than curDistance
+
+        if curDistance > prevDistance and 50 > curDistance:
+            if self.nextWaypoint == self.enterTrackPoint:
+                # We have entered the track. Begin lap 1.
+                self.curLap = 1
+                self.curSegment = 1
+                self.nextWaypoint = self.waypoints[0]
+                print ("Entering track")
+            else:
+                # We are in the middle of the session and have crossed a waypoint.
+                if self.nextWaypoint == self.trackStartFinish:
+                    # We have started a new lap
+                    self.addLap()
+                    self.curLap += 1
+                    self.curSegment = 1
+                    self.nextWaypoint = self.waypoints[0]
+                    print("Starting new lap.")
                 else:
-                    nextWaypoint = self.waypoints[self.curSegment-1]
-                # Are we within 25 feet of the next waypoint?
-                if utils.calculateGPSdistance(curPoint, nextWaypoint) < 25:
-                    # Distance is decreasing until we cross. When distance increases, we have crossed
-                    if utils.calculateGPSdistance(curPoint, nextWaypoint) > utils.calculateGPSdistance(prevPoint, nextWaypoint):
-                        print ("Increment segment...")
-                        self.curSegment += 1
+                    # We have crossed a simple segment boundary within a lap
+                    self.nextWaypoint = self.waypoints[self.curSegment]
+                    self.curSegment += 1
+                    print("Entering segment "+str(self.curSegment))
+        else:
+            pass
 
         measurement["lap"] = self.curLap
         measurement["segment"] = self.curSegment
@@ -277,15 +285,19 @@ class TrackSession:
     def getSegmentTimes(self, segmentNum):
         segments = self.getSegmentsByTime(segmentNum)
         times = [float(item["time"]) for item in segments]
+        if type(times) == type(int):
+            return [times]
         if len(times) == 0:
-            return 0
+            return [0]
         return times
     
     def getSegmentHotTimes(self, segmentNum):
         segments = self.getSegmentsByTime(segmentNum)
         times = [float(item["time"]) for item in segments[1:-2]]
+        if type(times) == type(int):
+            return [times]
         if len(times) == 0:
-            return 0
+            return [0]
         return times
     
     def getSegmentMinimum(self, segmentNum):
